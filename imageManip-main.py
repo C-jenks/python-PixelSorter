@@ -2,8 +2,6 @@ from PIL import Image
 from operator import itemgetter
 
 def orderOfOperations():
-    # TODO user input with val = input("Enter your value: ") to set values
-
     inputImage = Image.open("exampleLandscape.jpeg").convert('RGB')
     # input_image.save("input", format="jpeg")
 
@@ -19,7 +17,9 @@ def orderOfOperations():
 
     sortOrder = True #true is ascending, false is decending for all segment sorting
 
-    sortBy = False #true is saturation, false is luminance
+    sortBy = 1 #0 is saturation, 1 is luminance, 2 is hue
+
+    getParameters(direction, bothDirections, sortOrder, sortBy)
 
     #first sort
     sortLoop(inputImage, pixel_map, width, height, direction, bothDirections, directionPass, sortOrder, sortBy)
@@ -35,7 +35,12 @@ def orderOfOperations():
     #inputImage.save("output", format="jpeg")
 
     # view final output on screen.
-    #inputImage.show() 
+    inputImage.show() 
+
+def getParameters(direction, bothDirections, sortOrder, sortBy):
+    # TODO user input with val = input("Enter your value: ") to set values
+    #direction = input("Enter your value: ")
+    pass
 
 def getCurrentDirection(direction, bothDirections, directionPass):
     #return true if sorting horizontal, false for vertical
@@ -90,69 +95,67 @@ def sortLoop(inputImage, pixel_map, width, height, direction, bothDirections, di
 
             pixel = pixel_map[x, y]
             # enter segment of pixels based on chosen parameters (above set lightness / below set darkness / TODO edge detection / hue)
-            if sortBy:
-                # sort high sat add low option
+            match sortBy:
+                case 0:
+                    # sort high sat add low option
 
-                # saturation is highest r,g,b minus lowest r,g,b
-                if (max(pixel)-min(pixel))>50:
-                    #ADD i,j and .getPixel data into list
-                    segment.append({'x':x, 'y':y, 'data':pixel, 'satVal':max(pixel)-min(pixel)})
-                    segmentCount += 1
-                    segmentFound = True
-                elif segmentFound and segmentCount>1:
-                    for k in range(segmentCount):
-                        sortedSeg = sorted(segment, key=itemgetter('satVal'), reverse=False)
-                    #with sortedSeg reright pixels using data from newSegment but location from segment
-                    for k in range(segmentCount):
-                        #pixel_map[segment[k]['x'],segment[k]['y']] = (0,0,0)#sortedSeg[k]['data']
-                        inputImage.putpixel([segment[k]['x'],segment[k]['y']], sortedSeg[k]['data'])
+                    # saturation is highest r,g,b minus lowest r,g,b
+                    if (max(pixel)-min(pixel))>50:
+                        #ADD i,j and .getPixel data into list
+                        segment.append({'x':x, 'y':y, 'data':pixel, 'satVal':max(pixel)-min(pixel)})
+                        segmentCount += 1
+                        segmentFound = True
+                    elif segmentFound and segmentCount>1:
+                        for k in range(segmentCount):
+                            sortedSeg = sorted(segment, key=itemgetter('satVal'), reverse=False)
+                        #with sortedSeg reright pixels using data from newSegment but location from segment
+                        for k in range(segmentCount):
+                            #pixel_map[segment[k]['x'],segment[k]['y']] = (0,0,0)#sortedSeg[k]['data']
+                            inputImage.putpixel([segment[k]['x'],segment[k]['y']], sortedSeg[k]['data'])
 
-                    #reset segment, found and count
-                    segment.clear()
-                    segmentFound = False
-                    segmentCount = 0
-                else:
-                    #segment is only 1 pixel long
+                        #reset segment, found and count
+                        segment.clear()
+                        segmentFound = False
+                        segmentCount = 0
+                    else:
+                        #segment is only 1 pixel long
 
-                    #reset segment, found and count
-                    segment.clear()
-                    segmentFound = False
-                    segmentCount = 0
-                    
-            else:
-                # sort bright add dark option
+                        #reset segment, found and count
+                        segment.clear()
+                        segmentFound = False
+                        segmentCount = 0
+                        
+                case 1:
+                    # sort bright add dark option
 
-                # luminance is Y = 0.2126 × R + 0.7152 × G + 0.0722 × B
-                if ((pixel[0]*0.2126)+(pixel[1]*0.7152)+(pixel[2]*0.0722))>50:
-                    #ADD i,j and .getPixel data into list
-                    segment.append({'x':x, 'y':y, 'data':pixel, 'lumiVal':(pixel[0]*0.2126)+(pixel[1]*0.7152)+(pixel[2]*0.0722)})
-                    segmentCount += 1
-                    segmentFound = True
-                elif segmentFound and segmentCount>1:
-                    for k in range(segmentCount):
-                        sortedSeg = sorted(segment, key=itemgetter('lumiVal'), reverse=False)
-                    #with sortedSeg reright pixels using data from newSegment but location from segment
-                    for k in range(segmentCount):
-                        #pixel_map[segment[k]['x'],segment[k]['y']] = (0,0,0)#sortedSeg[k]['data']
-                        inputImage.putpixel([segment[k]['x'],segment[k]['y']], sortedSeg[k]['data'])
+                    # luminance is Y = 0.2126 × R + 0.7152 × G + 0.0722 × B
+                    if ((pixel[0]*0.2126)+(pixel[1]*0.7152)+(pixel[2]*0.0722))>100:
+                        #ADD i,j and .getPixel data into list
+                        segment.append({'x':x, 'y':y, 'data':pixel, 'lumiVal':(pixel[0]*0.2126)+(pixel[1]*0.7152)+(pixel[2]*0.0722)})
+                        segmentCount += 1
+                        segmentFound = True
+                    elif segmentFound and segmentCount>1:
+                        for k in range(segmentCount):
+                            sortedSeg = sorted(segment, key=itemgetter('lumiVal'), reverse=False)
+                        #with sortedSeg reright pixels using data from newSegment but location from segment
+                        for k in range(segmentCount):
+                            #pixel_map[segment[k]['x'],segment[k]['y']] = (0,0,0)#sortedSeg[k]['data']
+                            inputImage.putpixel([segment[k]['x'],segment[k]['y']], sortedSeg[k]['data'])
 
-                    #reset segment, found and count
-                    segment.clear()
-                    segmentFound = False
-                    segmentCount = 0
-                else:
-                    #segment is only 1 pixel long
+                        #reset segment, found and count
+                        segment.clear()
+                        segmentFound = False
+                        segmentCount = 0
+                    else:
+                        #segment is only 1 pixel long
 
-                    #reset segment, found and count
-                    segment.clear()
-                    segmentFound = False
-                    segmentCount = 0
-
-                
-            # getPixel return (255, 160, 122) as a tuple
-            #print (pixel_map[i,j])
-            #pixel_map[i, j] = (255, 165, 0)
-    inputImage.show()
+                        #reset segment, found and count
+                        segment.clear()
+                        segmentFound = False
+                        segmentCount = 0
+                case 2:
+                    # sort hue
+                    print()
 
 #Run
 orderOfOperations()
