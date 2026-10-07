@@ -1,40 +1,56 @@
 from PIL import Image
 from operator import itemgetter
 
-# TODO use input("Enter your value: ") to set values
+def orderOfOperations():
+    # TODO user input with val = input("Enter your value: ") to set values
 
-input_image = Image.open("exampleLandscape.jpeg")
-# input_image.save("input", format="jpeg")
+    inputImage = Image.open("exampleLandscape.jpeg").convert('RGB')
+    # input_image.save("input", format="jpeg")
 
-# Extract pixel map
-pixel_map = input_image.load()
+    # Extract pixel map
+    pixel_map = inputImage.load()
 
-width, height = input_image.size
+    width, height = inputImage.size
 
-# parameters
+    # parameters
+    direction = True #true is horizontal, false is vertical
+    bothDirections = False #will apply the other direction following the application of the selected direction
+    directionPass = 0 #which pass curently on
 
-direction = True #true is horizontal, false is vertical
-bothDirections = False #will apply the other direction following the application of the selected direction
-directionPass = 0 #which pass curently on
+    sortOrder = True #true is ascending, false is decending for all segment sorting
 
-sortOrder = True #true is ascending, false is decending for all segment sorting
+    sortBy = False #true is saturation, false is luminance
 
-sortBy = True #true is saturation, false is luminance
+    #first sort
+    sortLoop(inputImage, pixel_map, width, height, direction, bothDirections, directionPass, sortOrder, sortBy)
 
-def getCurrentDirection():
+    #second sort if selected
+    if bothDirections:
+        sortLoop()
+
+    #reset pass counter after sorts finished
+    directionPass = 0 
+
+    # save the final output
+    #inputImage.save("output", format="jpeg")
+
+    # view final output on screen.
+    #inputImage.show() 
+
+def getCurrentDirection(direction, bothDirections, directionPass):
     #return true if sorting horizontal, false for vertical
-    if (direction & directionPass == 1) | (not direction & directionPass == 2 & bothDirections) :
+    if (direction and directionPass == 1) or (not direction and directionPass == 2 and bothDirections) :
         return True
-    elif (not direction & directionPass == 1) | (direction & directionPass == 2 & bothDirections) :
+    elif (not direction and directionPass == 1) or (direction and directionPass == 2 and bothDirections) :
         return False
     else :
         #if fail safe
         print("getCurrentDirection fail safe")
         return True
 
-def getRange(iorj):
+def getRange(iorj, width, height, direction, bothDirections, directionPass):
     # if iorj is true get layers direction else get pixels direction
-    if getCurrentDirection() :
+    if getCurrentDirection(direction, bothDirections, directionPass) :
         if iorj :
             return height
         else :
@@ -45,7 +61,7 @@ def getRange(iorj):
         else :
             return height
     
-def sortLoop():
+def sortLoop(inputImage, pixel_map, width, height, direction, bothDirections, directionPass, sortOrder, sortBy):
     # increase pass number
     directionPass += 1
 
@@ -53,71 +69,93 @@ def sortLoop():
     segmentFound = False
     segmentCount = 0
 
-    #TODO if direction is true i will be y and j will be x
-    #     if direction is false i will be x and j will be y
-    #     change getDirection to return current sort direction
+    currentDirection = getCurrentDirection(direction, bothDirections, directionPass)
+
+    x = 0
+    y = 0
 
     # loop pixel layers
-    for i in range(getRange(True)):
+    for i in range(getRange(True, width, height,direction, bothDirections, directionPass)):
         # loop layers pixels
-        for j in range(getRange(False)):
-            # enter segment of pixels based on chosen parameters (above set lightness / below set darkness / TODO edge detection)
-            if(pixel_map[i, j]):
-                pixel = pixel_map.getpixel(i,j)
-                # sort pixels in segment asending or decending based on chosen parameters (luminance \ saturation \ hue \ custom)
-                if sortBy:
+        for j in range(getRange(False, width, height, direction, bothDirections, directionPass)):
+            #TODO if direction is true i will be y and j will be x
+            #     if direction is false i will be x and j will be y
+            #     change getDirection to return current sort direction
+            if currentDirection:
+                x = j
+                y = i
+            else :
+                x = i
+                y = j
+
+            pixel = pixel_map[x, y]
+            # enter segment of pixels based on chosen parameters (above set lightness / below set darkness / TODO edge detection / hue)
+            if sortBy:
+                # sort high sat add low option
+
                 # saturation is highest r,g,b minus lowest r,g,b
+                if (max(pixel)-min(pixel))>50:
+                    #ADD i,j and .getPixel data into list
+                    segment.append({'x':x, 'y':y, 'data':pixel, 'satVal':max(pixel)-min(pixel)})
+                    segmentCount += 1
+                    segmentFound = True
+                elif segmentFound and segmentCount>1:
+                    for k in range(segmentCount):
+                        sortedSeg = sorted(segment, key=itemgetter('satVal'), reverse=False)
+                    #with sortedSeg reright pixels using data from newSegment but location from segment
+                    for k in range(segmentCount):
+                        #pixel_map[segment[k]['x'],segment[k]['y']] = (0,0,0)#sortedSeg[k]['data']
+                        inputImage.putpixel([segment[k]['x'],segment[k]['y']], sortedSeg[k]['data'])
 
-                    #sort bright add dark option
-                    if (max(pixel)-min(pixel))>200:
-                        #ADD i,j and .getPixel data into array
-                        segment[segmentCount] = {'x':i,'y':j,'data':pixel,'satVal':max(pixel)-min(pixel)}
-                        segmentFound = True
-                        segmentCount += 1
-                    elif segmentFound & segmentCount>1:
-                        for k in range(segmentCount):
-                            sortedSeg = sorted(segment, key=itemgetter('satVal'), reverse=False)
-                        #with sortedSeg reright pixels using data from newSegment but location from segment
-
-                        #reset found and count
-                        segmentFound = False
-                        segmentCount = 0
-                    else:
-                        #segment is only 1 pixel long
-
-                        #reset found and count
-                        segmentFound = False
-                        segmentCount = 0
-                        
+                    #reset segment, found and count
+                    segment.clear()
+                    segmentFound = False
+                    segmentCount = 0
                 else:
-                # luminance is Y = 0.2126 × R + 0.7152 × G + 0.0722 × B
+                    #segment is only 1 pixel long
 
-                    #sort high sat add low option
-                    if ((pixel[0]*0.2126)+(pixel[1]*0.7152)+(pixel[2]*0.0722))>200:
-                        pass
-
+                    #reset segment, found and count
+                    segment.clear()
+                    segmentFound = False
+                    segmentCount = 0
                     
-                # getPixel return (255, 160, 122) as a tuple
-                print (pixel_map.getpixel(i,j))
-                #pixel_map[i, j] = (255, 165, 0)
+            else:
+                # sort bright add dark option
 
-#first sort
-sortLoop()
+                # luminance is Y = 0.2126 × R + 0.7152 × G + 0.0722 × B
+                if ((pixel[0]*0.2126)+(pixel[1]*0.7152)+(pixel[2]*0.0722))>50:
+                    #ADD i,j and .getPixel data into list
+                    segment.append({'x':x, 'y':y, 'data':pixel, 'lumiVal':(pixel[0]*0.2126)+(pixel[1]*0.7152)+(pixel[2]*0.0722)})
+                    segmentCount += 1
+                    segmentFound = True
+                elif segmentFound and segmentCount>1:
+                    for k in range(segmentCount):
+                        sortedSeg = sorted(segment, key=itemgetter('lumiVal'), reverse=False)
+                    #with sortedSeg reright pixels using data from newSegment but location from segment
+                    for k in range(segmentCount):
+                        #pixel_map[segment[k]['x'],segment[k]['y']] = (0,0,0)#sortedSeg[k]['data']
+                        inputImage.putpixel([segment[k]['x'],segment[k]['y']], sortedSeg[k]['data'])
 
-#second sort if selected
-if bothDirections:
-    sortLoop()
+                    #reset segment, found and count
+                    segment.clear()
+                    segmentFound = False
+                    segmentCount = 0
+                else:
+                    #segment is only 1 pixel long
 
-#reset pass counter after sorts finished
-directionPass = 0 
+                    #reset segment, found and count
+                    segment.clear()
+                    segmentFound = False
+                    segmentCount = 0
 
+                
+            # getPixel return (255, 160, 122) as a tuple
+            #print (pixel_map[i,j])
+            #pixel_map[i, j] = (255, 165, 0)
+    inputImage.show()
 
-# save the final output
-input_image.save("output", format="jpeg")
-
-# view final output on screen.
-input_image.show() 
-
+#Run
+orderOfOperations()
 
 #TODO add masking using black white image to retain certain features
 
